@@ -4,6 +4,8 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "kafka:up": "docker compose -f packages/kafka/docker-compose.yml up -d",
+    "kafka:topics": "pnpm --filter @repo/kafka create-topics",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"

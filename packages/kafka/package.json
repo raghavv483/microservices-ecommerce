@@ -4,7 +4,8 @@
   "main": "./src/index.ts",
   "type": "module",
   "scripts": {
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "create-topics": "pnpm dlx tsx src/create-topics.ts"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
