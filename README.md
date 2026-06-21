@@ -1,10 +1,10 @@
 # Microservices E-commerce Platform
 
-A full-stack e-commerce monorepo with a customer storefront, admin dashboard, auth service, product service, order service, payment service, email service, and shared Kafka/database packages.
+A full-stack e-commerce monorepo built with **Turborepo** and **pnpm workspaces**, featuring a customer storefront, admin dashboard, and six backend microservices communicating over Kafka.
 
 ## 1. Project Overview
 
-This repository is built as a microservices architecture with separate service boundaries and shared packages.
+This repository is organized as a Turborepo monorepo with clearly defined service boundaries and shared packages.
 
 ### What this project includes
 
@@ -18,41 +18,47 @@ This repository is built as a microservices architecture with separate service b
 - Cloudinary support for product images
 - TanStack React Query and React Table for admin UX
 
-## 2. Repository Structure
+## 2. Monorepo Structure
+
+This project uses **Turborepo** with **pnpm workspaces** for high-performance builds, shared caching, and coordinated task pipelines across all apps and packages.
 
 ### Apps
 
-- `apps/client` � customer storefront application
-- `apps/admin` � admin dashboard application
-- `apps/auth-service` � authentication and user management service
-- `apps/product-service` � product API service
-- `apps/order-service` � order API service
-- `apps/payment-service` � payment and webhook service
-- `apps/email-service` � email worker service
+- `apps/client` — customer storefront application
+- `apps/admin` — admin dashboard application
+- `apps/auth-service` — authentication and user management service
+- `apps/product-service` — product API service
+- `apps/order-service` — order API service
+- `apps/payment-service` — payment and webhook service
+- `apps/email-service` — email worker service
 
 ### Packages
 
-- `packages/kafka` � shared Kafka helpers and topic tooling
-- `packages/order-db` � shared MongoDB helper
-- `packages/product-db` � shared Prisma client and PostgreSQL schema
-- `packages/types` � shared TypeScript types
-- `packages/eslint-config` � shared ESLint config
-- `packages/typescript-config` � shared TS config
+- `packages/kafka` — shared Kafka helpers and topic tooling
+- `packages/order-db` — shared MongoDB helper
+- `packages/product-db` — shared Prisma client and PostgreSQL schema
+- `packages/types` — shared TypeScript types
+- `packages/eslint-config` — shared ESLint config
+- `packages/typescript-config` — shared TS config
 
 ## 3. Key Concepts
 
 ### Microservices
 
-Each service runs independently and communicates via HTTP APIs and Kafka events.
+Each service runs independently and communicates via HTTP APIs and Kafka events. Service boundaries are enforced through the monorepo workspace structure.
+
+### Turborepo
+
+[Turborepo](https://turbo.build/repo) orchestrates task execution across the monorepo — `pnpm dev`, `pnpm build`, and `pnpm lint` run only what has changed, with remote caching support via Vercel.
 
 ### Kafka
 
-Kafka is used to decouple services and support event-driven workflows. This repo includes topic setup and producer/consumer wrappers.
+Kafka decouples services and supports event-driven workflows. The shared `packages/kafka` package provides topic setup and producer/consumer wrappers used across all services.
 
 ### Databases
 
-- PostgreSQL for product and category data
-- MongoDB for order data
+- PostgreSQL for product and category data (via Prisma in `packages/product-db`)
+- MongoDB for order data (via `packages/order-db`)
 
 ### Third-party integrations
 
@@ -65,28 +71,45 @@ Kafka is used to decouple services and support event-driven workflows. This repo
 
 ```mermaid
 flowchart LR
-    UI_CLIENT[Client UI]\n    UI_ADMIN[Admin UI]\n    CLIENT -->|API requests| PRODUCT_SERVICE[Product Service]
-    CLIENT -->|API requests| ORDER_SERVICE[Order Service]
-    CLIENT -->|Stripe session| PAYMENT_SERVICE[Payment Service]
-    ADMIN -->|API requests| PRODUCT_SERVICE
-    ADMIN -->|API requests| AUTH_SERVICE[Auth Service]
-    AUTH_SERVICE -->|publishes| KAFKA[Kafka Cluster]
-    PRODUCT_SERVICE -->|publishes| KAFKA
-    ORDER_SERVICE -->|publishes| KAFKA
-    PAYMENT_SERVICE -->|publishes| KAFKA
-    EMAIL_SERVICE -->|consumes| KAFKA
-    PRODUCT_SERVICE -->|reads/writes| POSTGRESQL[(PostgreSQL)]
-    ORDER_SERVICE -->|reads/writes| MONGODB[(MongoDB)]
-    PAYMENT_SERVICE -->|verifies webhooks| STRIPE[Stripe]
-    PRODUCT_SERVICE -->|uploads/images| CLOUDINARY[Cloudinary]
-```
+    CLIENT[apps/client\nCustomer Storefront]
+    ADMIN[apps/admin\nAdmin Dashboard]
+    AUTH[apps/auth-service]
+    PRODUCT[apps/product-service]
+    ORDER[apps/order-service]
+    PAYMENT[apps/payment-service]
+    EMAIL[apps/email-service]
+    KAFKA[(Kafka Cluster)]
+    PG[(PostgreSQL)]
+    MONGO[(MongoDB)]
+    STRIPE[Stripe]
+    CLOUDINARY[Cloudinary]
+    CLERK[Clerk Auth]
 
-> **Images:** I did not find the attached screenshot files in the repository workspace. To embed them, please add the image files to the repo (for example `docs/images/`) and I can update the README with those exact image paths.
+    CLIENT -->|product & order APIs| PRODUCT
+    CLIENT -->|order APIs| ORDER
+    CLIENT -->|Stripe session| PAYMENT
+    ADMIN -->|product & category APIs| PRODUCT
+    ADMIN -->|user & auth APIs| AUTH
+
+    AUTH -->|user.created| KAFKA
+    PRODUCT -->|product.created / product.deleted| KAFKA
+    ORDER -->|order.created| KAFKA
+    PAYMENT -->|payment.successful| KAFKA
+    KAFKA -->|consumes events| EMAIL
+
+    PRODUCT -->|reads / writes| PG
+    ORDER -->|reads / writes| MONGO
+    PAYMENT -->|verifies webhooks| STRIPE
+    PRODUCT -->|image uploads| CLOUDINARY
+    AUTH -->|token validation| CLERK
+    CLIENT -->|token validation| CLERK
+```
 
 ## 5. Requirements
 
 - Node.js >= 18
 - `pnpm` installed globally
+- `turbo` (installed as a dev dependency via pnpm)
 - Docker Desktop / Docker Engine for Kafka
 - PostgreSQL database
 - MongoDB database
@@ -95,7 +118,7 @@ flowchart LR
 - Cloudinary account
 - Google OAuth credentials for Gmail sending
 
-## 5. Setup and Installation
+## 6. Setup and Installation
 
 ### Clone repository
 
@@ -115,7 +138,9 @@ Copy each service `.env.example` to `.env` in the same folder and fill in values
 pnpm dev
 ```
 
-## 6. Service Ports
+Turborepo will start all apps and services in parallel, respecting the dependency graph.
+
+## 7. Service Ports
 
 | Service | URL |
 |---|---|
@@ -126,7 +151,7 @@ pnpm dev
 | apps/payment-service | http://localhost:8002 |
 | apps/auth-service | http://localhost:8003 |
 
-## 7. Kafka Setup
+## 8. Kafka Setup
 
 ### Start Kafka
 
@@ -142,23 +167,30 @@ pnpm --filter @repo/kafka create-topics
 
 ### Kafka topics used
 
-- `user.created`
-- `order.created`
-- `payment.successful`
-- `product.created`
-- `product.deleted`
+| Topic | Published by | Consumed by |
+|---|---|---|
+| `user.created` | auth-service | email-service |
+| `order.created` | order-service | email-service |
+| `payment.successful` | payment-service | email-service |
+| `product.created` | product-service | email-service |
+| `product.deleted` | product-service | email-service |
 
-## 8. Database Configuration
+## 9. Database Configuration
 
 ### PostgreSQL
 
 The product service uses `packages/product-db` and Prisma. Set `DATABASE_URL` in `packages/product-db/.env`.
 
+```bash
+pnpm --filter @repo/product-db prisma migrate dev
+pnpm --filter @repo/product-db prisma generate
+```
+
 ### MongoDB
 
 The order service uses `packages/order-db`. Set `MONGO_URL` in `packages/order-db/.env`.
 
-## 9. Visual Overview
+## 10. Visual Overview
 
 ### Admin dashboard
 
@@ -184,7 +216,7 @@ The order service uses `packages/order-db`. Set `MONGO_URL` in `packages/order-d
 
 ![Order panel screenshot](docs/images/screenshot-6.png)
 
-## 10. Environment Variable Examples
+## 11. Environment Variable Examples
 
 ### `apps/admin/.env.example`
 
@@ -268,7 +300,7 @@ MONGO_URL=your-mongodb-connection-string
 DATABASE_URL="postgresql://username:password@localhost:5432/products?schema=public"
 ```
 
-## 10. Service Summaries
+## 12. Service Summaries
 
 ### apps/client
 
@@ -298,7 +330,7 @@ Stripe session and webhook handling service with published payment events.
 
 Email worker service that consumes Kafka topics and sends transactional emails.
 
-## 11. Shared Packages
+## 13. Shared Packages
 
 ### packages/kafka
 
@@ -312,20 +344,34 @@ Prisma client and PostgreSQL schema for product data.
 
 MongoDB connection helper used by the order service.
 
-## 12. Helpful Commands
+## 14. Helpful Commands
 
 ```bash
+# Install all workspace dependencies
 pnpm install
+
+# Start all apps and services in parallel (via Turborepo)
 pnpm dev
+
+# Lint all packages
 pnpm lint
+
+# Format all packages
 pnpm format
+
+# Type-check all packages
 pnpm check-types
+
+# Start Kafka via Docker
 pnpm kafka:up
+
+# Create all required Kafka topics
 pnpm --filter @repo/kafka create-topics
 ```
 
-## 13. Notes
+## 15. Notes
 
 - `.env` files are excluded by `.gitignore`
 - Use `.env.example` templates to document required variables without exposing secrets
+- Turborepo caches build artifacts in `.turbo/` — run `pnpm turbo run build --force` to bypass cache
 - Each service may still require additional config for Clerk, Stripe, Cloudinary, and Google OAuth
