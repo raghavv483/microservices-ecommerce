@@ -180,7 +180,7 @@ The order service uses `packages/order-db`. Set `MONGO_URL` in `packages/order-d
 
 ![Metrics dashboard screenshot](docs/images/screenshot-5.png)
 
-### Order panel
+### Admin Panel
 
 ![Order panel screenshot](docs/images/screenshot-6.png)
 
