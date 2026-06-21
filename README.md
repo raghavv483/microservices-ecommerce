@@ -1,135 +1,331 @@
-# Turborepo starter
+# Microservices E-commerce Platform
 
-This Turborepo starter is maintained by the Turborepo core team.
+A full-stack e-commerce monorepo with a customer storefront, admin dashboard, auth service, product service, order service, payment service, email service, and shared Kafka/database packages.
 
-## Using this example
+## 1. Project Overview
 
-Run the following command:
+This repository is built as a microservices architecture with separate service boundaries and shared packages.
 
-```sh
-npx create-turbo@latest
+### What this project includes
+
+- Customer storefront and admin dashboard using Next.js
+- Clerk authentication with protected APIs and UIs
+- Product service using PostgreSQL and Prisma
+- Order service using MongoDB
+- Payment service with Stripe session creation and webhook handling
+- Email service for transactional email notifications
+- Kafka event-driven communication across services
+- Cloudinary support for product images
+- TanStack React Query and React Table for admin UX
+
+## 2. Repository Structure
+
+### Apps
+
+- `apps/client` � customer storefront application
+- `apps/admin` � admin dashboard application
+- `apps/auth-service` � authentication and user management service
+- `apps/product-service` � product API service
+- `apps/order-service` � order API service
+- `apps/payment-service` � payment and webhook service
+- `apps/email-service` � email worker service
+
+### Packages
+
+- `packages/kafka` � shared Kafka helpers and topic tooling
+- `packages/order-db` � shared MongoDB helper
+- `packages/product-db` � shared Prisma client and PostgreSQL schema
+- `packages/types` � shared TypeScript types
+- `packages/eslint-config` � shared ESLint config
+- `packages/typescript-config` � shared TS config
+
+## 3. Key Concepts
+
+### Microservices
+
+Each service runs independently and communicates via HTTP APIs and Kafka events.
+
+### Kafka
+
+Kafka is used to decouple services and support event-driven workflows. This repo includes topic setup and producer/consumer wrappers.
+
+### Databases
+
+- PostgreSQL for product and category data
+- MongoDB for order data
+
+### Third-party integrations
+
+- Clerk for authentication
+- Stripe for payments
+- Cloudinary for image handling
+- Google OAuth2 for email delivery
+
+## 4. Architecture Diagram
+
+```mermaid
+flowchart LR
+    UI_CLIENT[Client UI]\n    UI_ADMIN[Admin UI]\n    CLIENT -->|API requests| PRODUCT_SERVICE[Product Service]
+    CLIENT -->|API requests| ORDER_SERVICE[Order Service]
+    CLIENT -->|Stripe session| PAYMENT_SERVICE[Payment Service]
+    ADMIN -->|API requests| PRODUCT_SERVICE
+    ADMIN -->|API requests| AUTH_SERVICE[Auth Service]
+    AUTH_SERVICE -->|publishes| KAFKA[Kafka Cluster]
+    PRODUCT_SERVICE -->|publishes| KAFKA
+    ORDER_SERVICE -->|publishes| KAFKA
+    PAYMENT_SERVICE -->|publishes| KAFKA
+    EMAIL_SERVICE -->|consumes| KAFKA
+    PRODUCT_SERVICE -->|reads/writes| POSTGRESQL[(PostgreSQL)]
+    ORDER_SERVICE -->|reads/writes| MONGODB[(MongoDB)]
+    PAYMENT_SERVICE -->|verifies webhooks| STRIPE[Stripe]
+    PRODUCT_SERVICE -->|uploads/images| CLOUDINARY[Cloudinary]
 ```
 
-## What's inside?
+> **Images:** I did not find the attached screenshot files in the repository workspace. To embed them, please add the image files to the repo (for example `docs/images/`) and I can update the README with those exact image paths.
 
-This Turborepo includes the following packages/apps:
+## 5. Requirements
 
-### Apps and Packages
+- Node.js >= 18
+- `pnpm` installed globally
+- Docker Desktop / Docker Engine for Kafka
+- PostgreSQL database
+- MongoDB database
+- Stripe account
+- Clerk account
+- Cloudinary account
+- Google OAuth credentials for Gmail sending
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+## 5. Setup and Installation
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+### Clone repository
 
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+```bash
+git clone <your-repo-url>
+cd microservices-ecommerce
+pnpm install
 ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+### Environment files
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+Copy each service `.env.example` to `.env` in the same folder and fill in values.
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+### Start development
+
+```bash
+pnpm dev
 ```
 
-### Develop
+## 6. Service Ports
 
-To develop all apps and packages, run the following command:
+| Service | URL |
+|---|---|
+| apps/client | http://localhost:3002 |
+| apps/admin | http://localhost:3003 |
+| apps/product-service | http://localhost:8000 |
+| apps/order-service | http://localhost:8001 |
+| apps/payment-service | http://localhost:8002 |
+| apps/auth-service | http://localhost:8003 |
 
-```
-cd my-turborepo
+## 7. Kafka Setup
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
+### Start Kafka
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+```bash
+pnpm kafka:up
 ```
 
-### Remote Caching
+### Create required topics
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
+```bash
+pnpm --filter @repo/kafka create-topics
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+### Kafka topics used
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+- `user.created`
+- `order.created`
+- `payment.successful`
+- `product.created`
+- `product.deleted`
 
+## 8. Database Configuration
+
+### PostgreSQL
+
+The product service uses `packages/product-db` and Prisma. Set `DATABASE_URL` in `packages/product-db/.env`.
+
+### MongoDB
+
+The order service uses `packages/order-db`. Set `MONGO_URL` in `packages/order-db/.env`.
+
+## 9. Visual Overview
+
+### Admin dashboard
+
+![Admin dashboard screenshot](docs/images/screenshot-1.png)
+
+### Client storefront
+
+![Client storefront screenshot](docs/images/screenshot-2.png)
+
+### Cart and checkout
+
+![Cart and checkout screenshot](docs/images/screenshot-3.png)
+
+### Payment method
+
+![Payment method screenshot](docs/images/screenshot-4.png)
+
+### Metrics dashboard
+
+![Metrics dashboard screenshot](docs/images/screenshot-5.png)
+
+### Order panel
+
+![Order panel screenshot](docs/images/screenshot-6.png)
+
+## 10. Environment Variable Examples
+
+### `apps/admin/.env.example`
+
+```env
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
+CLERK_SECRET_KEY=your-clerk-secret-key
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/
+NEXT_PUBLIC_PRODUCT_SERVICE_URL=http://localhost:8000
+NEXT_PUBLIC_ORDER_SERVICE_URL=http://localhost:8001
+NEXT_PUBLIC_PAYMENT_SERVICE_URL=http://localhost:8002
+NEXT_PUBLIC_AUTH_SERVICE_URL=http://localhost:8003
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
 ```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
+### `apps/client/.env.example`
+
+```env
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
+CLERK_SECRET_KEY=your-clerk-secret-key
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/
+NEXT_PUBLIC_PRODUCT_SERVICE_URL=http://localhost:8000
+NEXT_PUBLIC_ORDER_SERVICE_URL=http://localhost:8001
+NEXT_PUBLIC_PAYMENT_SERVICE_URL=http://localhost:8002
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
 ```
 
-## Useful Links
+### `apps/auth-service/.env.example`
 
-Learn more about the power of Turborepo:
+```env
+CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
+CLERK_SECRET_KEY=your-clerk-secret-key
+```
 
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+### `apps/email-service/.env.example`
+
+```env
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REFRESH_TOKEN=your-google-refresh-token
+```
+
+### `apps/order-service/.env.example`
+
+```env
+CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
+CLERK_SECRET_KEY=your-clerk-secret-key
+MONGO_URL=your-mongodb-connection-string
+```
+
+### `apps/payment-service/.env.example`
+
+```env
+STRIPE_SECRET_KEY=your-stripe-secret-key
+STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
+CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
+CLERK_SECRET_KEY=your-clerk-secret-key
+```
+
+### `apps/product-service/.env.example`
+
+```env
+CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
+CLERK_SECRET_KEY=your-clerk-secret-key
+```
+
+### `packages/order-db/.env.example`
+
+```env
+MONGO_URL=your-mongodb-connection-string
+```
+
+### `packages/product-db/.env.example`
+
+```env
+DATABASE_URL="postgresql://username:password@localhost:5432/products?schema=public"
+```
+
+## 10. Service Summaries
+
+### apps/client
+
+Customer storefront with product browsing, search, cart, and Stripe checkout.
+
+### apps/admin
+
+Admin dashboard for product, category, user, order management, and analytics.
+
+### apps/auth-service
+
+Clerk-authenticated user service with protected admin routes and Kafka event publishing.
+
+### apps/product-service
+
+Product API service with Express, PostgreSQL, Prisma, and Kafka event publishing.
+
+### apps/order-service
+
+Order service with Fastify, MongoDB, and Kafka subscriptions for payments.
+
+### apps/payment-service
+
+Stripe session and webhook handling service with published payment events.
+
+### apps/email-service
+
+Email worker service that consumes Kafka topics and sends transactional emails.
+
+## 11. Shared Packages
+
+### packages/kafka
+
+Shared Kafka client, producer, consumer, and topic creation scripts.
+
+### packages/product-db
+
+Prisma client and PostgreSQL schema for product data.
+
+### packages/order-db
+
+MongoDB connection helper used by the order service.
+
+## 12. Helpful Commands
+
+```bash
+pnpm install
+pnpm dev
+pnpm lint
+pnpm format
+pnpm check-types
+pnpm kafka:up
+pnpm --filter @repo/kafka create-topics
+```
+
+## 13. Notes
+
+- `.env` files are excluded by `.gitignore`
+- Use `.env.example` templates to document required variables without exposing secrets
+- Each service may still require additional config for Clerk, Stripe, Cloudinary, and Google OAuth
